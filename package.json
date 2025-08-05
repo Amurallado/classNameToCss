@@ -1,96 +1,145 @@
 {
-  "name": "classnametocss",
-  "displayName": "className Completion in CSS",
-  "description": "css/less/scss className IntelliSense from html/jsx/tsx",
-  "publisher": "zitup",
-  "version": "0.0.7",
-  "icon": "icon.jpg",
-  "engines": {
-    "vscode": "^1.42.0"
-  },
-  "repository": {
-    "url": "https://github.com/zytjs/classNameToCss"
-  },
-  "categories": [
-    "Programming Languages",
-    "Other"
-  ],
-  "keywords": [
-    "IntelliSense",
-    "completion",
-    "autocomplete",
-    "class",
-    "css",
-    "less",
-    "sass",
-    "scss",
-    "stylus",
-    "jsx",
-    "tsx",
-    "vue",
-    "classtocss",
-    "class to css",
-    "classnametocss",
-    "classname to css"
-  ],
-  "activationEvents": [
-    "onLanguage:css",
-    "onLanguage:less",
-    "onLanguage:scss",
-    "onLanguage:sass",
-    "onLanguage:stylus",
-    "onLanguage:vue",
-    "onLanguage:js",
-    "onLanguage:jsx",
-    "onLanguage:tsx",
-    "onLanguage:html"
-  ],
-  "main": "./out/extension.js",
-  "contributes": {
-    "languages": [
-      {
-        "id": "vue",
-        "aliases": [
-          "Vue",
-          "vue"
+    "name": "css-selector-support",
+    "displayName": "CSS Selector Support",
+    "description": "Intelligent CSS Tool for selector auto-completation from html/jsx/tsx",
+    "publisher": "Amurallado",
+    "version": "1.0.0",
+    "icon": "icon.png",
+    "engines": {
+        "vscode": "^1.102.0"
+    },
+    "repository": {
+        "url": "https://github.com/Amurallado/classNameToCss"
+    },
+    "categories": [
+        "Programming Languages",
+        "Other"
+    ],
+    "keywords": [
+        "IntelliSense",
+        "completion",
+        "autocomplete",
+        "class",
+        "css",
+        "less",
+        "sass",
+        "scss",
+        "stylus",
+        "jsx",
+        "tsx",
+        "vue",
+        "classtocss",
+        "class to css",
+        "classnametocss",
+        "classname to css",
+        "css selector support",
+        "css selector",
+        "css selector support for class",
+        "css selector support for class names",
+        "css selector support for class names in html",
+        "css selector support for class names in jsx",
+        "css selector support for class names in tsx",
+        "css selector support for class names in vue",
+        "css selector support for class names in stylus",
+        "css selector support for class names in less",
+        "css selector support for class names in sass",
+        "css selector support for class names in scss",
+        "css selector support for class names in css",
+        "css selector support for class names in css files",
+        "css completation for HTML class"
+    ],
+    "activationEvents": [
+        "onLanguage:css",
+        "onLanguage:less",
+        "onLanguage:scss",
+        "onLanguage:sass",
+        "onLanguage:stylus",
+        "onLanguage:vue",
+        "onLanguage:js",
+        "onLanguage:jsx",
+        "onLanguage:tsx",
+        "onLanguage:html"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "languages": [
+            {
+                "id": "vue",
+                "aliases": [
+                    "Vue",
+                    "vue"
+                ],
+                "extensions": [
+                    ".vue"
+                ]
+            },
+            {
+                "id": "stylus",
+                "aliases": [
+                    "styl",
+                    "stylus"
+                ],
+                "extensions": [
+                    ".styl"
+                ]
+            }
         ],
-        "extensions": [
-          ".vue"
-        ]
-      },
-      {
-        "id": "stylus",
-        "aliases": [
-          "styl",
-          "stylus"
-        ],
-        "extensions": [
-          ".styl"
-        ]
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "yarn run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "test": "yarn run compile && node ./node_modules/vscode/bin/test",
-    "lint": "eslint src"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "yarn lint"
+        "configuration": {
+            "type": "object",
+            "title": "CSS Selector Support configuration",
+            "properties": {
+                "cssselectorsupport.include": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [
+                        "htm",
+                        "html",
+                        "jsx",
+                        "tsx",
+                        "vue"
+                    ],
+                    "description": "The file extensions to scan for class names."
+                },
+                "cssselectorsupport.sourceFiles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "default": [],
+                    "description": "Glob patterns for the source files to scan for class names. If this is not empty, it will override the 'include' setting."
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "test": "vscode-test",
+        "lint": "eslint src",
+        "prepare": "husky install"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.32.0",
+        "@types/glob": "^8.1.0",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "20.x",
+        "@types/vscode": "^1.102.0",
+        "@typescript-eslint/eslint-plugin": "^8.31.1",
+        "@typescript-eslint/parser": "^8.31.1",
+        "@vscode/test-cli": "^0.0.11",
+        "@vscode/test-electron": "^2.5.2",
+        "eslint": "^9.25.1",
+        "glob": "^10.3.10",
+        "globals": "^16.3.0",
+        "husky": "^9.0.11",
+        "mocha": "^10.3.0",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.38.0"
+    },
+    "dependencies": {
+        "@vscode/vsce": "^3.6.0"
     }
-  },
-  "devDependencies": {
-    "@types/mocha": "^2.2.42",
-    "@types/node": "^10.12.21",
-    "@types/vscode": "^1.42.0",
-    "@typescript-eslint/eslint-plugin": "^4.17.0",
-    "@typescript-eslint/parser": "^4.17.0",
-    "eslint": "^7.21.0",
-    "husky": "4.3.8",
-    "typescript": "^4.2.3",
-    "vscode": "^1.1.37"
-  }
 }
