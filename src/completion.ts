@@ -1,105 +1,131 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import { promisify } from "util";
+import { Cache } from "./cache";
 
-const extensionArray: string[] = ["htm", "html", "jsx", "tsx"];
-const htmMatchRegex = /class=["'][\w- ]+["']/g;
-const sxMatchRegex = /className=["'][\w- ]+["']/g;
-const fileSep = path.sep;
+const readFile = promisify(fs.readFile);
 
-/**
- * @param {*} document
- * @param {*} position
- * @param {*} token
- * @param {*} context
- */
-function provideCompletionItems(
+const classRegex = /class=(?:"([^"]*)"|'([^']*)')/g;
+const classNameRegex = /className=(?:"([^"]*)"|'([^']*)')/g;
+const idRegex = /id=(?:"([^"]*)"|'([^']*)')/g;
+
+async function provideCompletionItems(
   document: vscode.TextDocument,
   position: vscode.Position,
+  cache: Cache
 ) {
-  const typeText = document
-    .lineAt(position)
-    .text.substring(position.character - 1, position.character);
-  if (typeText !== ".") {
+  const line = document.lineAt(position);
+  const triggerCharacter = line.text.substring(position.character - 1, position.character);
+
+  if (triggerCharacter !== "." && triggerCharacter !== "#") {
     return;
   }
-  // current file path
-  const filePath: string = document.fileName;
 
-  let classNames: string[] = [];
-  // vue
+  const config = vscode.workspace.getConfiguration("cssselectorsupport");
+  const fileExtensions = config.get<string[]>("include", [
+    "htm",
+    "html",
+    "jsx",
+    "tsx",
+    "vue",
+  ]);
+
+  const sourceFiles = config.get<string[]>("sourceFiles", []);
+
+  let selectorArrays: { classes: string[], ids: string[] }[] = [];
+
   if (document.languageId === "vue") {
-    classNames = getClass(filePath);
+    selectorArrays.push(await getSelectors(document.fileName, cache));
+  } else {
+    let filesToScan: string[] = [];
+    if (sourceFiles.length > 0) {
+        const sourcePromises = sourceFiles.map(pattern => vscode.workspace.findFiles(pattern, "**/node_modules/**"));
+        const foundFiles = (await Promise.all(sourcePromises)).flat();
+        filesToScan = foundFiles.map(uri => uri.fsPath);
+    } else {
+        const currentDir = path.dirname(document.uri.fsPath);
+        try {
+            const filesInDir = await promisify(fs.readdir)(currentDir);
+            const filteredFiles = filesInDir.filter(file => {
+                const ext = file.split('.').pop();
+                return ext !== undefined && fileExtensions.includes(ext);
+            });
+            filesToScan = filteredFiles.map(file => path.join(currentDir, file));
+        } catch (e) {
+            // Silently ignore errors
+            filesToScan = [];
+        }
+    }
+
+    const selectorPromises = filesToScan.map((filePath) => {
+        return getSelectors(filePath, cache);
+    });
+    selectorArrays = await Promise.all(selectorPromises);
   }
-  // css-like file
-  else {
-    // current dir path
-    const dir: string = filePath.slice(0, filePath.lastIndexOf(fileSep));
-    // current dir files
-    const files: string[] = fs.readdirSync(dir);
-    // filter target file
-    const target: string[] = files.filter((item: string) =>
-      extensionArray.includes(item.split(".")[1])
-    );
-    // get target files class name
-    target.forEach((item: string) => {
-      const filePath = `${dir}${fileSep}${item}`;
-      const fileClass = getClass(filePath);
-      classNames = classNames.concat(fileClass);
+
+  if (triggerCharacter === ".") {
+    const allClassNames = selectorArrays.flatMap(s => s.classes).flatMap(c => c.split(' ')).filter(Boolean);
+    const uniqueClassNames = [...new Set(allClassNames)];
+    return uniqueClassNames.map((ele: string) => {
+      return new vscode.CompletionItem(
+        `.${ele}`,
+        vscode.CompletionItemKind.Text
+      );
     });
   }
 
-  classNames = classNames.reduce((arr, ele) => {
-    const className: string = ele.split("=")[1];
-    // remove the quotes
-    const field: string = className.slice(1, className.length - 1);
-    // handle multi class name
-    if (ele.includes(" ")) {
-      return arr.concat(field.split(" "));
-    } else {
-      arr.push(field);
-      return arr;
+  if (triggerCharacter === "#") {
+    const allIds = selectorArrays.flatMap(s => s.ids).filter(Boolean);
+    const uniqueIds = [...new Set(allIds)];
+    return uniqueIds.map((ele: string) => {
+      return new vscode.CompletionItem(
+        `#${ele}`,
+        vscode.CompletionItemKind.Text
+      );
+    });
+  }
+}
+
+async function getSelectors(path: string, cache: Cache): Promise<{ classes: string[], ids: string[] }> {
+    if (cache.has(path)) {
+        return cache.get(path)!;
     }
-  }, [] as string[]);
 
-  // de-duplication
-  classNames = [...new Set(classNames)];
+  try {
+    const data: string = await readFile(path, "utf8");
+    const fileContent = data;
 
-  return classNames.map((ele: string) => {
-    return new vscode.CompletionItem(
-      // intelliSense content need include trigger operator
-      // https://github.com/Microsoft/vscode/issues/71662
-      document.languageId === "vue" ? `${ele}` : `.${ele}`,
-      vscode.CompletionItemKind.Text
-    );
-  });
+    const classes: string[] = [];
+    let match;
+
+    while ((match = classRegex.exec(fileContent)) !== null) {
+      classes.push(match[1] || match[2]);
+    }
+
+    while ((match = classNameRegex.exec(fileContent)) !== null) {
+      classes.push(match[1] || match[2]);
+    }
+
+    const ids: string[] = [];
+    while ((match = idRegex.exec(fileContent)) !== null) {
+        ids.push(match[1] || match[2]);
+    }
+
+    const selectors = { classes, ids };
+    cache.set(path, selectors);
+    return selectors;
+  } catch (error) {
+    // Silently ignore errors
+    return { classes: [], ids: [] };
+  }
 }
 
-function getClass(path: string) {
-  const data: string = fs.readFileSync(path, "utf8").split("\n").join("");
-
-  let result;
-  // htm/html/vue use class
-  if (path.includes("htm") || path.includes("vue")) {
-    result = data.match(htmMatchRegex);
-  }
-  // tsx/jsx use className
-  if (path.includes("sx")) {
-    result = data.match(sxMatchRegex);
-  }
-  return result || [];
-}
-
-/**
- * @param {*} item
- * @param {*} token
- */
 function resolveCompletionItem() {
   return null;
 }
 
-export default function (context: vscode.ExtensionContext): void {
-  // trigger only when type dot
+export default function (context: vscode.ExtensionContext, cache: Cache): void {
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
       [
@@ -111,10 +137,12 @@ export default function (context: vscode.ExtensionContext): void {
         { scheme: "file", language: "vue" },
       ],
       {
-        provideCompletionItems,
+        provideCompletionItems: (document, position) => {
+          return provideCompletionItems(document, position, cache);
+        },
         resolveCompletionItem,
       },
-      "."
+      ".", "#"
     )
   );
 }
