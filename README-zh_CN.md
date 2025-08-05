@@ -3,7 +3,7 @@
 在 css/less/sass/stylus 文件提供同一目录下，htm/html/jsx/tsx 文件中 className 的智能提示。
 在 vue 文件中，会提供本文件 class 的智能提示。
 
-![](https://raw.githubusercontent.com/zytjs/classNameToCss/master/classtocss.gif)
+![]()
 
 # 功能
 

@@ -1,5 +1,32 @@
 # Change Log
 
+## [1.0.0] - 2025-08-05
+
+### Added
+
+- Caching mechanism for improved performance.
+- File watcher to automatically update the cache.
+- Configuration option to customize the file extensions to scan.
+- Configuration option to specify source files for class name extraction.
+
+### Changed
+
+- Updated all dependencies to their latest versions.
+- Modernized the testing framework to use `@vscode/test-electron`.
+- Improved regular expressions for more accurate parsing.
+- Updated `tsconfig.json` to use a more modern ECMAScript target.
+
+### Fixed
+
+- Addressed security vulnerabilities.
+- Fixed issues with class name extraction in certain edge cases.
+- Resolved performance issues with large files.
+- modify extension name from `className Completion in CSS` to `CSS Selector Support`
+
+### Removed
+
+- Removed the deprecated `vscode` package.
+
 ## [0.0.7] - 2023-03-09
 
 ### Fixed
@@ -46,6 +73,7 @@
 
 - support htm/html/jsx/tsx
 
+[1.0.0]: https://github.com/your-username/your-repo/releases/tag/1.0.0
 [0.0.7]: https://github.com/zitup/classNameToCss/releases/tag/0.0.7
 [0.0.6]: https://github.com/zytjs/classNameToCss/releases/tag/0.0.6
 [0.0.5]: https://github.com/zytjs/classNameToCss/releases/tag/0.0.5

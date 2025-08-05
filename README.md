@@ -1,34 +1,71 @@
-# IntelliSense for HTML classNames in CSS
+# CSS Selector Support
 
-![Visual Studio Marketplace Installs](https://img.shields.io/visual-studio-marketplace/i/zitup.classnametocss)
+[Visual Studio Marketplace Installs]()
 
-[简体中文](./README-zh_CN.md)
+A Visual Studio Code extension that provides HTML class name completion for CSS, Less, Sass, Stylus, and Vue files. It intelligently scans your workspace for class definitions in HTML, JSX, TSX, and Vue files and provides you with instant autocompletion.
 
-A Visual Studio Code extension that provides HTML class name completion for the CSS based on the definitions found in the same directory.
-It will provide class name of **current** file if in `.vue` file.
+[]()
 
-![](https://raw.githubusercontent.com/zytjs/classNameToCss/master/classtocss.gif)
+# Features
 
-# Feature
+*   **Smart Autocompletion:** Get instant autocompletion for your CSS class names in CSS, Less, Sass, Stylus, and Vue files.
+*   **Flexible File Scanning:** By default, the extension scans for files in the same directory as your stylesheet. You can also configure it to scan your entire workspace or specific files.
+*   **Caching for Performance:** Class names are cached to provide you with instant autocompletion without any lag.
+*   **Real-time Updates:** The extension uses a file watcher to automatically update the cache when you create, delete, or modify your files.
+*   **Configurable:** You can customize the file extensions to be scanned, so you can tailor the extension to your project's needs.
+*   **Vue Support:** It will provide class name of **current** file if in `.vue` file.
 
-- Gives you autocompletion in css for html class names in the same directory or current file
+# Supported File Types
 
-# Supported File Type
+The extension will scan the following file types for class definitions:
 
-- HTML/HTM
-- JSX/TSX
-- Vue
-- CSS
-- Less
-- Sass
-- Stylus
+*   HTML (`.html`, `.htm`)
+*   JSX (`.jsx`)
+*   TSX (`.tsx`)
+*   Vue (`.vue`)
+
+You can get autocompletion in the following file types:
+
+*   CSS (`.css`)
+*   Less (`.less`)
+*   Sass (`.scss`, `.sass`)
+*   Stylus (`.styl`, `.stylus`)
+*   Vue (`.vue`)
+
+# Configuration
+
+You can configure the file extensions to be scanned by modifying the `cssselectorsupport.include` setting in your `settings.json` file.
+
+```json
+"cssselectorsupport.include": [
+  "html",
+  "htm",
+  "jsx",
+  "tsx",
+  "vue"
+]
+```
+
+By default, the extension will scan for files in the same directory as the stylesheet you are editing. To scan other files, you can use the `cssselectorsupport.sourceFiles` setting. This is useful if you want to limit the search to a specific directory or set of files.
+
+```json
+"cssselectorsupport.sourceFiles": [
+  "src/**/*.html",
+  "components/**/*.jsx"
+]
+```
 
 # Usage
 
-This extension is very very easy to use, there just one step to improve your development efficiency：
-
-- Search, Install, Type dot and Share with your colleague
+1.  Install the extension from the Visual Studio Marketplace.
+2.  Open a project with HTML, JSX, TSX, or Vue files.
+3.  Open a CSS, Less, Sass, Stylus, or Vue file.
+4.  Type a `.` and you will see a list of available class names.
 
 # Contributing
 
 Any type of contribution and discussion is welcome.
+
+# License
+
+This project is licensed under the MIT License. See the [LICENSE.md](LICENSE.md) file for details.
