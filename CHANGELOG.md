@@ -1,5 +1,23 @@
 # Change Log
 
+## [1.1.0] - 2025-09-04
+
+### Fixed
+
+- No longer incorrectly treats color values (e.g., `#fff`) and decimal numbers (e.g., `.4rem`) as class or ID selectors.
+
+### Added
+
+- Added support for PHP files.
+- Completions for selectors already defined in the current file are now excluded to reduce redundancy.
+- Added a comprehensive unit test suite for core functionality.
+
+### Changed
+
+- Optimized file scanning with debouncing and caching to improve performance, especially in large projects (`src/completion.ts`, `src/diagnostics.ts`, `src/utils.ts`).
+- Improved detection of CSS property values to be multi-line aware and recognize `var()` functions (`src/utils.ts`).
+- The internal file watcher now dynamically uses the project's configuration (`src/extension.ts`).
+
 ## [1.0.0] - 2025-08-05
 
 ### Added
