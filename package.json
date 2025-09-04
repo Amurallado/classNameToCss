@@ -1,9 +1,9 @@
 {
     "name": "css-selector-support",
     "displayName": "CSS Selector Support",
-    "description": "Intelligent CSS Tool for selector auto-completation from html/jsx/tsx",
+    "description": "Intelligent CSS Tool for selector auto-completation from html/jsx/tsx/php",
     "publisher": "Amurallado",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "icon": "icon.png",
     "engines": {
         "vscode": "^1.102.0"
@@ -37,6 +37,7 @@
         "css selector support for class",
         "css selector support for class names",
         "css selector support for class names in html",
+        "css selector support for class names in php",
         "css selector support for class names in jsx",
         "css selector support for class names in tsx",
         "css selector support for class names in vue",
@@ -58,7 +59,8 @@
         "onLanguage:js",
         "onLanguage:jsx",
         "onLanguage:tsx",
-        "onLanguage:html"
+        "onLanguage:html",
+        "onLanguage:php"
     ],
     "main": "./out/extension.js",
     "contributes": {
@@ -98,7 +100,8 @@
                         "html",
                         "jsx",
                         "tsx",
-                        "vue"
+                        "vue",
+                        "php"
                     ],
                     "description": "The file extensions to scan for class names."
                 },
@@ -117,7 +120,7 @@
         "vscode:prepublish": "npm run compile",
         "compile": "tsc -p ./",
         "watch": "tsc -watch -p ./",
-        "test": "vscode-test",
+        "test": "npm run compile && vscode-test",
         "lint": "eslint src",
         "prepare": "husky install"
     },
@@ -140,6 +143,7 @@
         "typescript-eslint": "^8.38.0"
     },
     "dependencies": {
+        "@google/gemini-cli": "^0.2.2",
         "@vscode/vsce": "^3.6.0"
     }
 }
