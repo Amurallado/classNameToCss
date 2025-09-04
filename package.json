@@ -3,7 +3,7 @@
     "displayName": "CSS Selector Support",
     "description": "Intelligent CSS Tool for selector auto-completation from html/jsx/tsx/php",
     "publisher": "Amurallado",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "icon": "icon.png",
     "engines": {
         "vscode": "^1.102.0"
