@@ -3,11 +3,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { promisify } from 'util';
 import { Cache } from './cache';
+import { debounce, isInsideCSSPropertyValue, isInsideColorValue } from './utils';
 
 const readFile = promisify(fs.readFile);
 const classRegex = /class=(?:"([^"]*)"|'([^']*)')/g;
 const classNameRegex = /className=(?:"([^"]*)"|'([^']*)')/g;
 const idRegex = /id=(?:"([^"]*)"|'([^']*)')/g;
+
+import { fileListCache } from './completion';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 
@@ -15,18 +18,18 @@ export function activate(context: vscode.ExtensionContext, cache: Cache) {
     diagnosticCollection = vscode.languages.createDiagnosticCollection('cssselectorsupport');
     context.subscriptions.push(diagnosticCollection);
 
-    const updateDiagnosticsWithCache = (document: vscode.TextDocument) => {
+    const debouncedUpdateDiagnostics = debounce((document: vscode.TextDocument) => {
         if (isCss(document.languageId)) {
             updateDiagnostics(document, diagnosticCollection, cache);
         }
-    };
+    }, 300);
 
-    vscode.workspace.onDidOpenTextDocument(updateDiagnosticsWithCache);
-    vscode.workspace.onDidChangeTextDocument(event => updateDiagnosticsWithCache(event.document));
+    vscode.workspace.onDidOpenTextDocument(debouncedUpdateDiagnostics);
+    vscode.workspace.onDidChangeTextDocument(event => debouncedUpdateDiagnostics(event.document));
     vscode.workspace.onDidCloseTextDocument(document => diagnosticCollection.delete(document.uri));
 
     // Initial check for already open documents
-    vscode.workspace.textDocuments.forEach(updateDiagnosticsWithCache);
+    vscode.workspace.textDocuments.forEach(debouncedUpdateDiagnostics);
 }
 
 function isCss(languageId: string): boolean {
@@ -35,7 +38,7 @@ function isCss(languageId: string): boolean {
 
 async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollection: vscode.DiagnosticCollection, cache: Cache): Promise<void> {
     const config = vscode.workspace.getConfiguration('cssselectorsupport');
-    const fileExtensions = config.get<string[]>('include', ['htm', 'html', 'jsx', 'tsx', 'vue']);
+    const fileExtensions = config.get<string[]>('include', ['htm', 'html', 'jsx', 'tsx', 'vue', 'php']);
     const sourceFiles = config.get<string[]>('sourceFiles', []);
 
     let filesToScan: string[] = [];
@@ -44,16 +47,28 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
         const foundFiles = (await Promise.all(sourcePromises)).flat();
         filesToScan = foundFiles.map(uri => uri.fsPath);
     } else {
-        const currentDir = path.dirname(document.uri.fsPath);
-        try {
-            const filesInDir = await promisify(fs.readdir)(currentDir);
-            const filteredFiles = filesInDir.filter(file => {
-                const ext = file.split('.').pop();
-                return ext !== undefined && fileExtensions.includes(ext);
-            });
-            filesToScan = filteredFiles.map(file => path.join(currentDir, file));
-        } catch (e) {
-            filesToScan = [];
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+        if (workspaceFolder) {
+            const workspacePath = workspaceFolder.uri.fsPath;
+            if (fileListCache.has(workspacePath)) {
+                filesToScan = fileListCache.get(workspacePath)!;
+            } else {
+                const filesInWorkspace = await vscode.workspace.findFiles(`**/*.{${fileExtensions.join(',')}}`, '**/node_modules/**');
+                filesToScan = filesInWorkspace.map(uri => uri.fsPath);
+                fileListCache.set(workspacePath, filesToScan);
+            }
+        } else if (!document.isUntitled) {
+            const currentDir = path.dirname(document.uri.fsPath);
+            try {
+                const filesInDir = await promisify(fs.readdir)(currentDir);
+                const filteredFiles = filesInDir.filter(file => {
+                    const ext = file.split('.').pop();
+                    return ext !== undefined && fileExtensions.includes(ext);
+                });
+                filesToScan = filteredFiles.map(file => path.join(currentDir, file));
+            } catch (e) {
+                filesToScan = [];
+            }
         }
     }
 
@@ -77,8 +92,18 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
             for (const match of classMatches) {
                 const className = match[1];
                 const fullMatch = match[0];
+                const index = line.indexOf(fullMatch);
+
+                // Create a position at the start of the match to check context.
+                const matchPosition = new vscode.Position(i, Math.max(0, index));
+
+                // Skip diagnostics for matches that are inside CSS property values
+                // (for example: colors like `#fff`, rgba decimals like `.4`, or other property values).
+                if (isInsideCSSPropertyValue(document, matchPosition)) {
+                    continue;
+                }
+
                 if (!existingClasses.has(className)) {
-                    const index = line.indexOf(fullMatch);
                     const range = new vscode.Range(i, index, i, index + fullMatch.length);
                     const diagnostic = new vscode.Diagnostic(range, `Class '.${className}' does not exist.`, vscode.DiagnosticSeverity.Error);
                     diagnostics.push(diagnostic);
@@ -90,8 +115,18 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
             for (const match of idMatches) {
                 const idName = match[1];
                 const fullMatch = match[0];
+                const index = line.indexOf(fullMatch);
+
+                // Create a position at the start of the match to check context.
+                const matchPosition = new vscode.Position(i, Math.max(0, index));
+
+                // Skip diagnostics when the `#` token is inside a CSS property value
+                // (e.g., hex colors like `#FFFFFF`).
+                if (isInsideCSSPropertyValue(document, matchPosition)) {
+                    continue;
+                }
+
                 if (!existingIds.has(idName)) {
-                    const index = line.indexOf(fullMatch);
                     const range = new vscode.Range(i, index, i, index + fullMatch.length);
                     const diagnostic = new vscode.Diagnostic(range, `ID '#${idName}' does not exist.`, vscode.DiagnosticSeverity.Error);
                     diagnostics.push(diagnostic);
