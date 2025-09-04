@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import completion from "./completion";
+import completion, { fileListCache } from "./completion";
 import { Cache } from "./cache";
 import * as diagnostics from "./diagnostics";
 
@@ -13,20 +13,35 @@ export function activate(context: vscode.ExtensionContext): void {
   completion(context, cache);
   diagnostics.activate(context, cache);
 
+  const config = vscode.workspace.getConfiguration('cssselectorsupport');
+  const includeLanguages = config.get<string[]>('include', ['htm', 'html', 'jsx', 'tsx', 'vue', 'php']);
+
   const watcher = vscode.workspace.createFileSystemWatcher(
-    "**/*.{htm,html,jsx,tsx,vue}"
+    `**/*.{${includeLanguages.join(',')}}`
   );
 
   watcher.onDidChange((uri) => {
     cache.delete(uri.fsPath);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (workspaceFolder) {
+        fileListCache.delete(workspaceFolder.uri.fsPath);
+    }
   });
 
   watcher.onDidCreate((uri) => {
     cache.delete(uri.fsPath);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (workspaceFolder) {
+        fileListCache.delete(workspaceFolder.uri.fsPath);
+    }
   });
 
   watcher.onDidDelete((uri) => {
     cache.delete(uri.fsPath);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (workspaceFolder) {
+        fileListCache.delete(workspaceFolder.uri.fsPath);
+    }
   });
 
   context.subscriptions.push(watcher);
