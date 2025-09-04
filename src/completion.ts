@@ -3,12 +3,34 @@ import * as path from "path";
 import * as vscode from "vscode";
 import { promisify } from "util";
 import { Cache } from "./cache";
+import { isInsideCSSPropertyValue, isInsideColorValue } from "./utils";
 
 const readFile = promisify(fs.readFile);
 
 const classRegex = /class=(?:"([^"]*)"|'([^']*)')/g;
 const classNameRegex = /className=(?:"([^"]*)"|'([^']*)')/g;
 const idRegex = /id=(?:"([^"]*)"|'([^']*)')/g;
+
+export const fileListCache = new Map<string, string[]>();
+
+function getLocalSelectors(document: vscode.TextDocument): { classes: Set<string>, ids: Set<string> } {
+    const localClasses = new Set<string>();
+    const localIds = new Set<string>();
+    const text = document.getText();
+    const classRegex = /\.([a-zA-Z0-9_-]+)/g;
+    const idRegex = /#([a-zA-Z0-9_-]+)/g;
+    let match;
+
+    while ((match = classRegex.exec(text)) !== null) {
+        localClasses.add(match[1]);
+    }
+
+    while ((match = idRegex.exec(text)) !== null) {
+        localIds.add(match[1]);
+    }
+
+    return { classes: localClasses, ids: localIds };
+}
 
 async function provideCompletionItems(
   document: vscode.TextDocument,
@@ -22,6 +44,10 @@ async function provideCompletionItems(
     return;
   }
 
+  if (isInsideCSSPropertyValue(document, position) || isInsideColorValue(document, position)) {
+    return;
+  }
+
   const config = vscode.workspace.getConfiguration("cssselectorsupport");
   const fileExtensions = config.get<string[]>("include", [
     "htm",
@@ -29,6 +55,7 @@ async function provideCompletionItems(
     "jsx",
     "tsx",
     "vue",
+    "php"
   ]);
 
   const sourceFiles = config.get<string[]>("sourceFiles", []);
@@ -39,11 +66,22 @@ async function provideCompletionItems(
     selectorArrays.push(await getSelectors(document.fileName, cache));
   } else {
     let filesToScan: string[] = [];
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+
     if (sourceFiles.length > 0) {
         const sourcePromises = sourceFiles.map(pattern => vscode.workspace.findFiles(pattern, "**/node_modules/**"));
         const foundFiles = (await Promise.all(sourcePromises)).flat();
         filesToScan = foundFiles.map(uri => uri.fsPath);
-    } else {
+    } else if (workspaceFolder) {
+        const workspacePath = workspaceFolder.uri.fsPath;
+        if (fileListCache.has(workspacePath)) {
+            filesToScan = fileListCache.get(workspacePath)!;
+        } else {
+            const filesInWorkspace = await vscode.workspace.findFiles(`**/*.{${fileExtensions.join(',')}}`, '**/node_modules/**');
+            filesToScan = filesInWorkspace.map(uri => uri.fsPath);
+            fileListCache.set(workspacePath, filesToScan);
+        }
+    } else if (!document.isUntitled) {
         const currentDir = path.dirname(document.uri.fsPath);
         try {
             const filesInDir = await promisify(fs.readdir)(currentDir);
@@ -53,7 +91,6 @@ async function provideCompletionItems(
             });
             filesToScan = filteredFiles.map(file => path.join(currentDir, file));
         } catch (e) {
-            // Silently ignore errors
             filesToScan = [];
         }
     }
@@ -64,10 +101,13 @@ async function provideCompletionItems(
     selectorArrays = await Promise.all(selectorPromises);
   }
 
+  const { classes: localClasses, ids: localIds } = getLocalSelectors(document);
+  const COMPLETION_LIMIT = 500;
+
   if (triggerCharacter === ".") {
     const allClassNames = selectorArrays.flatMap(s => s.classes).flatMap(c => c.split(' ')).filter(Boolean);
-    const uniqueClassNames = [...new Set(allClassNames)];
-    return uniqueClassNames.map((ele: string) => {
+    const uniqueClassNames = [...new Set(allClassNames)].filter(c => !localClasses.has(c));
+    return uniqueClassNames.slice(0, COMPLETION_LIMIT).map((ele: string) => {
       return new vscode.CompletionItem(
         `.${ele}`,
         vscode.CompletionItemKind.Text
@@ -77,8 +117,8 @@ async function provideCompletionItems(
 
   if (triggerCharacter === "#") {
     const allIds = selectorArrays.flatMap(s => s.ids).filter(Boolean);
-    const uniqueIds = [...new Set(allIds)];
-    return uniqueIds.map((ele: string) => {
+    const uniqueIds = [...new Set(allIds)].filter(id => !localIds.has(id));
+    return uniqueIds.slice(0, COMPLETION_LIMIT).map((ele: string) => {
       return new vscode.CompletionItem(
         `#${ele}`,
         vscode.CompletionItemKind.Text
@@ -116,7 +156,6 @@ async function getSelectors(path: string, cache: Cache): Promise<{ classes: stri
     cache.set(path, selectors);
     return selectors;
   } catch (error) {
-    // Silently ignore errors
     return { classes: [], ids: [] };
   }
 }
@@ -124,6 +163,7 @@ async function getSelectors(path: string, cache: Cache): Promise<{ classes: stri
 function resolveCompletionItem() {
   return null;
 }
+
 
 export default function (context: vscode.ExtensionContext, cache: Cache): void {
   context.subscriptions.push(
@@ -137,7 +177,7 @@ export default function (context: vscode.ExtensionContext, cache: Cache): void {
         { scheme: "file", language: "vue" },
       ],
       {
-        provideCompletionItems: (document, position) => {
+        provideCompletionItems: (document, position, token, context) => {
           return provideCompletionItems(document, position, cache);
         },
         resolveCompletionItem,
