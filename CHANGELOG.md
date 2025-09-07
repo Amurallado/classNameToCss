@@ -1,5 +1,11 @@
 # Change Log
 
+## [1.1.1] - 2025-09-07
+
+### Fixed
+
+- Update media in README and clear files unused
+
 ## [1.1.0] - 2025-09-04
 
 ### Fixed
