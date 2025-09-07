@@ -8,10 +8,10 @@ A Visual Studio Code extension that provides HTML class name completion for CSS,
 
 1.  Install the extension from the Visual Studio Marketplace.
 2.  Open a project with HTML, JSX, TSX, or Vue files.
-[img1](classtocss1.png)
+![](https://raw.githubusercontent.com/Amurallado/classNameToCss/master/classtocss2.png)
 3.  Open a CSS, Less, Sass, Stylus, or Vue file.
 4.  Type a `.` and you will see a list of available class names.
-[img2](classtocss2.png)
+![](https://raw.githubusercontent.com/Amurallado/classNameToCss/master/classtocss2.png)
 
 ## Features
 
