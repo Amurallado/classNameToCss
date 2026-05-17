@@ -1,15 +1,9 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
+import * as fs from 'fs';
 import { promisify } from 'util';
 import { Cache } from './cache';
-import { debounce, isInsideCSSPropertyValue, isInsideColorValue } from './utils';
-
-const readFile = promisify(fs.readFile);
-const classRegex = /class=(?:"([^"]*)"|'([^']*)')/g;
-const classNameRegex = /className=(?:"([^"]*)"|'([^']*)')/g;
-const idRegex = /id=(?:"([^"]*)"|'([^']*)')/g;
-
+import { debounce, isInsideCSSPropertyValue, getSelectors } from './utils';
 import { fileListCache } from './completion';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
@@ -77,8 +71,8 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
     const selectorPromises = filesToScan.map(filePath => getSelectors(filePath, cache));
     const selectorArrays = await Promise.all(selectorPromises);
 
-    const existingClasses = new Set(selectorArrays.flatMap(s => s.classes).flatMap(c => c.split(' ')).filter(Boolean));
-    const existingIds = new Set(selectorArrays.flatMap(s => s.ids).filter(Boolean));
+    const existingClasses = new Set(selectorArrays.flatMap(s => s.classes).map(c => c.name));
+    const existingIds = new Set(selectorArrays.flatMap(s => s.ids).map(i => i.name));
 
     const diagnostics: vscode.Diagnostic[] = [];
     const text = document.getText();
@@ -92,13 +86,12 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
             for (const match of classMatches) {
                 const className = match[1];
                 const fullMatch = match[0];
-                const index = line.indexOf(fullMatch);
+                const index = match.index!;
 
                 // Create a position at the start of the match to check context.
-                const matchPosition = new vscode.Position(i, Math.max(0, index));
+                const matchPosition = new vscode.Position(i, index);
 
                 // Skip diagnostics for matches that are inside CSS property values
-                // (for example: colors like `#fff`, rgba decimals like `.4`, or other property values).
                 if (isInsideCSSPropertyValue(document, matchPosition)) {
                     continue;
                 }
@@ -115,13 +108,12 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
             for (const match of idMatches) {
                 const idName = match[1];
                 const fullMatch = match[0];
-                const index = line.indexOf(fullMatch);
+                const index = match.index!;
 
                 // Create a position at the start of the match to check context.
-                const matchPosition = new vscode.Position(i, Math.max(0, index));
+                const matchPosition = new vscode.Position(i, index);
 
                 // Skip diagnostics when the `#` token is inside a CSS property value
-                // (e.g., hex colors like `#FFFFFF`).
                 if (isInsideCSSPropertyValue(document, matchPosition)) {
                     continue;
                 }
@@ -136,40 +128,4 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
     });
 
     diagnosticCollection.set(document.uri, diagnostics);
-}
-
-async function getSelectors(filePath: string, cache: Cache): Promise<{ classes: string[], ids: string[] }> {
-    if (cache.has(filePath)) {
-        return cache.get(filePath)!;
-    }
-
-    try {
-        const fileContent: string = await readFile(filePath, 'utf8');
-        const classes: string[] = [];
-        const ids: string[] = [];
-        let match;
-
-        // Reset regex lastIndex before use
-        classRegex.lastIndex = 0;
-        classNameRegex.lastIndex = 0;
-        idRegex.lastIndex = 0;
-
-        while ((match = classRegex.exec(fileContent)) !== null) {
-            classes.push(match[1] || match[2]);
-        }
-
-        while ((match = classNameRegex.exec(fileContent)) !== null) {
-            classes.push(match[1] || match[2]);
-        }
-
-        while ((match = idRegex.exec(fileContent)) !== null) {
-            ids.push(match[1] || match[2]);
-        }
-
-        const selectors = { classes, ids };
-        cache.set(filePath, selectors);
-        return selectors;
-    } catch (error) {
-        return { classes: [], ids: [] };
-    }
 }

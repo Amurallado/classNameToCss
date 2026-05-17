@@ -1,11 +1,18 @@
-export class Cache {
-  private cache: Map<string, { classes: string[], ids: string[] }> = new Map();
+import * as vscode from 'vscode';
 
-  public get(key: string): { classes: string[], ids: string[] } | undefined {
+export interface Selector {
+  name: string;
+  range: vscode.Range;
+}
+
+export class Cache {
+  private cache: Map<string, { classes: Selector[], ids: Selector[] }> = new Map();
+
+  public get(key: string): { classes: Selector[], ids: Selector[] } | undefined {
     return this.cache.get(key);
   }
 
-  public set(key: string, value: { classes: string[], ids: string[] }): void {
+  public set(key: string, value: { classes: Selector[], ids: Selector[] }): void {
     this.cache.set(key, value);
   }
 

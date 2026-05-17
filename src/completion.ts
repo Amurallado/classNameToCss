@@ -1,11 +1,9 @@
-import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
+import { Cache, Selector } from "./cache";
+import { isInsideCSSPropertyValue, isInsideColorValue, getSelectors } from "./utils";
+import * as fs from "fs";
 import { promisify } from "util";
-import { Cache } from "./cache";
-import { isInsideCSSPropertyValue, isInsideColorValue } from "./utils";
-
-const readFile = promisify(fs.readFile);
 
 const classRegex = /class=(?:"([^"]*)"|'([^']*)')/g;
 const classNameRegex = /className=(?:"([^"]*)"|'([^']*)')/g;
@@ -60,7 +58,7 @@ async function provideCompletionItems(
 
   const sourceFiles = config.get<string[]>("sourceFiles", []);
 
-  let selectorArrays: { classes: string[], ids: string[] }[] = [];
+  let selectorArrays: { classes: Selector[], ids: Selector[] }[] = [];
 
   if (document.languageId === "vue") {
     selectorArrays.push(await getSelectors(document.fileName, cache));
@@ -107,7 +105,7 @@ async function provideCompletionItems(
   const COMPLETION_LIMIT = 500;
 
   if (triggerCharacter === ".") {
-    const allClassNames = selectorArrays.flatMap(s => s.classes).flatMap(c => c.split(' ')).filter(Boolean);
+    const allClassNames = selectorArrays.flatMap(s => s.classes).map(c => c.name).flatMap(c => c.split(' ')).filter(Boolean);
     const uniqueClassNames = [...new Set(allClassNames)].filter(c => !localClasses.has(c));
     return uniqueClassNames.slice(0, COMPLETION_LIMIT).map((ele: string) => {
       return new vscode.CompletionItem(
@@ -118,7 +116,7 @@ async function provideCompletionItems(
   }
 
   if (triggerCharacter === "#") {
-    const allIds = selectorArrays.flatMap(s => s.ids).filter(Boolean);
+    const allIds = selectorArrays.flatMap(s => s.ids).map(i => i.name).filter(Boolean);
     const uniqueIds = [...new Set(allIds)].filter(id => !localIds.has(id));
     return uniqueIds.slice(0, COMPLETION_LIMIT).map((ele: string) => {
       return new vscode.CompletionItem(
@@ -126,39 +124,6 @@ async function provideCompletionItems(
         vscode.CompletionItemKind.Text
       );
     });
-  }
-}
-
-async function getSelectors(path: string, cache: Cache): Promise<{ classes: string[], ids: string[] }> {
-    if (cache.has(path)) {
-        return cache.get(path)!;
-    }
-
-  try {
-    const data: string = await readFile(path, "utf8");
-    const fileContent = data;
-
-    const classes: string[] = [];
-    let match;
-
-    while ((match = classRegex.exec(fileContent)) !== null) {
-      classes.push(match[1] || match[2]);
-    }
-
-    while ((match = classNameRegex.exec(fileContent)) !== null) {
-      classes.push(match[1] || match[2]);
-    }
-
-    const ids: string[] = [];
-    while ((match = idRegex.exec(fileContent)) !== null) {
-        ids.push(match[1] || match[2]);
-    }
-
-    const selectors = { classes, ids };
-    cache.set(path, selectors);
-    return selectors;
-  } catch (error) {
-    return { classes: [], ids: [] };
   }
 }
 

@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import completion, { fileListCache } from "./completion";
 import { Cache } from "./cache";
 import * as diagnostics from "./diagnostics";
+import { registerDefinitionProvider } from "./navigation";
 
 export function activate(context: vscode.ExtensionContext): void {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
@@ -12,6 +13,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const cache = new Cache();
   completion(context, cache);
   diagnostics.activate(context, cache);
+  registerDefinitionProvider(context, cache);
 
   const config = vscode.workspace.getConfiguration('cssselectorsupport');
   const includeLanguages = config.get<string[]>('include', ['htm', 'html', 'jsx', 'tsx', 'vue', 'php']);

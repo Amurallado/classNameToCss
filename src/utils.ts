@@ -1,4 +1,17 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import { promisify } from 'util';
+import { Cache, Selector } from './cache';
+
+const readFile = promisify(fs.readFile);
+
+const classRegex = /class=(?:"([^"]*)"|'([^']*)')/g;
+const classNameRegex = /className=(?:"([^"]*)"|'([^']*)')/g;
+const idRegex = /id=(?:"([^"]*)"|'([^']*)')/g;
+
+const cssClassRegex = /\.([a-zA-Z0-9_-]+)/g;
+const cssIdRegex = /#([a-zA-Z0-9_-]+)/g;
 
 /**
  * Checks if the given position is inside a CSS property value, supporting multi-line values.
@@ -62,4 +75,96 @@ export function debounce<F extends (...args: any[]) => any>(func: F, wait: numbe
         }
         timeout = setTimeout(() => func(...args), wait);
     };
+}
+
+export function offsetToPosition(text: string, offset: number): vscode.Position {
+    const lines = text.substring(0, offset).split('\n');
+    const line = lines.length - 1;
+    const character = lines[line].length;
+    return new vscode.Position(line, character);
+}
+
+export async function getSelectors(filePath: string, cache: Cache): Promise<{ classes: Selector[], ids: Selector[] }> {
+    if (cache.has(filePath)) {
+        return cache.get(filePath)!;
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const isCssFile = ['.css', '.scss', '.sass', '.less', '.styl'].includes(ext);
+
+    try {
+        const fileContent: string = await readFile(filePath, 'utf8');
+        const classes: Selector[] = [];
+        const ids: Selector[] = [];
+        let match;
+
+        if (isCssFile) {
+            cssClassRegex.lastIndex = 0;
+            cssIdRegex.lastIndex = 0;
+
+            while ((match = cssClassRegex.exec(fileContent)) !== null) {
+                const startPos = offsetToPosition(fileContent, match.index);
+                const endPos = offsetToPosition(fileContent, match.index + match[0].length);
+                classes.push({ name: match[1], range: new vscode.Range(startPos, endPos) });
+            }
+
+            while ((match = cssIdRegex.exec(fileContent)) !== null) {
+                const startPos = offsetToPosition(fileContent, match.index);
+                const endPos = offsetToPosition(fileContent, match.index + match[0].length);
+                ids.push({ name: match[1], range: new vscode.Range(startPos, endPos) });
+            }
+        } else {
+            // Reset regex lastIndex before use
+            classRegex.lastIndex = 0;
+            classNameRegex.lastIndex = 0;
+            idRegex.lastIndex = 0;
+
+            const processMatch = (match: RegExpExecArray, type: 'class' | 'id') => {
+                const value = match[1] || match[2];
+                if (!value) return;
+
+                // The value might be multiple classes separated by spaces
+                const parts = value.split(/\s+/);
+                let searchIndex = 0;
+
+                for (const part of parts) {
+                    if (part) {
+                        const partIndex = value.indexOf(part, searchIndex);
+                        const currentOffset = match.index + match[0].indexOf(value) + partIndex;
+                        
+                        const startPos = offsetToPosition(fileContent, currentOffset);
+                        const endPos = offsetToPosition(fileContent, currentOffset + part.length);
+                        const selector: Selector = {
+                            name: part,
+                            range: new vscode.Range(startPos, endPos)
+                        };
+                        if (type === 'class') {
+                            classes.push(selector);
+                        } else {
+                            ids.push(selector);
+                        }
+                        searchIndex = partIndex + part.length;
+                    }
+                }
+            };
+
+            while ((match = classRegex.exec(fileContent)) !== null) {
+                processMatch(match, 'class');
+            }
+
+            while ((match = classNameRegex.exec(fileContent)) !== null) {
+                processMatch(match, 'class');
+            }
+
+            while ((match = idRegex.exec(fileContent)) !== null) {
+                processMatch(match, 'id');
+            }
+        }
+
+        const selectors = { classes, ids };
+        cache.set(filePath, selectors);
+        return selectors;
+    } catch (error) {
+        return { classes: [], ids: [] };
+    }
 }
