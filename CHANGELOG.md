@@ -1,5 +1,20 @@
 # Change Log
 
+## [1.2.2] - 2026-05-17
+
+### Fixed
+
+- **Security**: Fixed path traversal vulnerabilities in `src/completion.ts`, `src/diagnostics.ts`, and `src/test/index.ts` by sanitizing file paths.
+- **Security**: Prevented "Object Injection Sink" vulnerability in `src/diagnostics.ts` by refactoring dynamic property access.
+- **Security**: Updated dependencies to resolve several critical and high-severity vulnerabilities (CVE-2025-59343 in `tar-fs`, and vulnerabilities in `serialize-javascript`, and `diff`).
+- Fixed TypeScript configuration to include missing node and mocha types.
+- Fixed a bug in the test mock for `vscode.TextDocument.getText` that caused failures when using ranges.
+
+### Changed
+
+- **Modernized**: Updated all core development tools (TypeScript 6.0.3, ESLint 10.4.0, Mocha 11.7.5, Esbuild 0.28.0).
+- **pnpm v11**: Migrated configuration to `pnpm-workspace.yaml` for compatibility with pnpm v11.
+
 ## [1.1.1] - 2025-09-07
 
 ### Fixed
