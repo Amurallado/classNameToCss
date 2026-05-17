@@ -16,11 +16,15 @@ A Visual Studio Code extension that provides HTML class name completion for CSS,
 ## Features
 
 *   **Smart Autocompletion:** Get instant autocompletion for your CSS class names in CSS, Less, Sass, Stylus, and Vue files.
-*   **Flexible File Scanning:** By default, the extension scans for files in the same directory as your stylesheet. You can also configure it to scan your entire workspace or specific files.
+*   **Go To Definition:** Jump directly from a class/ID in HTML/JSX/PHP to its definition in your CSS/SCSS/Less files.
+*   **Find All References:** Find every usage of a CSS selector across your entire project's markup files.
+*   **Rename Refactor:** Safely rename a class or ID project-wide. Renaming in HTML updates all CSS definitions, and vice-versa, with built-in collision detection to prevent style merging.
+*   **Style Preview (Hover):** Hover over any class or ID in your markup to see its CSS rules directly in a tooltip, reducing context switching.
+*   **Modern Framework Support:** Fully supports **Tailwind v4** `@theme` blocks, **CSS Modules**, and multi-root workspaces.
+*   **Dynamic Class Support:** Intelligently parses classes within template literals and `clsx()` / `classnames()` calls in React and Vue.
 *   **Caching for Performance:** Class names are cached to provide you with instant autocompletion without any lag.
 *   **Real-time Updates:** The extension uses a file watcher to automatically update the cache when you create, delete, or modify your files.
 *   **Configurable:** You can customize the file extensions to be scanned, so you can tailor the extension to your project's needs.
-*   **Vue Support:** It will provide class name of **current** file if in `.vue` file.
 
 ## Supported File Types
 
@@ -30,6 +34,7 @@ The extension will scan the following file types for class definitions:
 *   JSX (`.jsx`)
 *   TSX (`.tsx`)
 *   Vue (`.vue`)
+*   PHP (`.php`)
 
 You can get autocompletion in the following file types:
 
@@ -49,7 +54,8 @@ You can configure the file extensions to be scanned by modifying the `cssselecto
   "htm",
   "jsx",
   "tsx",
-  "vue"
+  "vue",
+  "php"
 ]
 ```
 
