@@ -10,6 +10,15 @@ const classRegex = /class=(?:"([^"]*)"|'([^']*)')/g;
 const classNameRegex = /className=(?:"([^"]*)"|'([^']*)')/g;
 const idRegex = /id=(?:"([^"]*)"|'([^']*)')/g;
 
+// Template literals extraction (e.g. `btn ${...}`)
+const templateLiteralRegex = /`([^`]*)`/g;
+
+// clsx/classNames calls (e.g. clsx('a', 'b'), classNames('c', { d: true }))
+const clsxRegex = /(?:clsx|classNames)\s*\(([^)]*)\)/g;
+
+// Generic string extraction (for single and double quotes)
+const stringRegex = /'([^']*)'|"([^"]*)"/g;
+
 const cssClassRegex = /\.([a-zA-Z0-9_-]+)/g;
 const cssIdRegex = /#([a-zA-Z0-9_-]+)/g;
 
@@ -140,6 +149,8 @@ export async function getSelectors(filePath: string, cache: Cache): Promise<{ cl
             classNameRegex.lastIndex = 0;
             idRegex.lastIndex = 0;
             cssModulesRegex.lastIndex = 0;
+            templateLiteralRegex.lastIndex = 0;
+            clsxRegex.lastIndex = 0;
 
             const processMatch = (match: RegExpExecArray, type: 'class' | 'id') => {
                 const value = match[1] || match[2];
@@ -170,6 +181,64 @@ export async function getSelectors(filePath: string, cache: Cache): Promise<{ cl
                 }
             };
 
+            const extractFromContent = (content: string, baseOffset: number) => {
+                // First extract from literal parts
+                const stringParts = content.split(/\${[^}]*}/);
+                let currentPos = 0;
+
+                for (const part of stringParts) {
+                    const partOffset = baseOffset + content.indexOf(part, currentPos);
+                    const parts = part.split(/\s+/);
+                    let searchIndex = 0;
+
+                    for (const p of parts) {
+                        if (p && /^[a-zA-Z0-9_-]+$/.test(p)) {
+                            const pIndex = part.indexOf(p, searchIndex);
+                            const finalOffset = partOffset + pIndex;
+                            const startPos = offsetToPosition(fileContent, finalOffset);
+                            const endPos = offsetToPosition(fileContent, finalOffset + p.length);
+                            classes.push({
+                                name: p,
+                                range: new vscode.Range(startPos, endPos)
+                            });
+                            searchIndex = pIndex + p.length;
+                        }
+                    }
+                    currentPos = content.indexOf(part, currentPos) + part.length;
+                }
+
+                // Now extract from expressions ${...}
+                const expressionRegex = /\${([^}]*)}/g;
+                let exprMatch;
+                while ((exprMatch = expressionRegex.exec(content)) !== null) {
+                    const exprContent = exprMatch[1];
+                    const exprOffset = baseOffset + exprMatch.index + 2; // +2 for ${
+                    let strMatch;
+                    stringRegex.lastIndex = 0;
+                    while ((strMatch = stringRegex.exec(exprContent)) !== null) {
+                        const val = strMatch[1] || strMatch[2];
+                        if (val) {
+                            const valOffset = exprOffset + strMatch.index + 1;
+                            const valParts = val.split(/\s+/);
+                            let valSearchIndex = 0;
+                            for (const vp of valParts) {
+                                if (vp && /^[a-zA-Z0-9_-]+$/.test(vp)) {
+                                    const vpIndex = val.indexOf(vp, valSearchIndex);
+                                    const finalOffset = valOffset + vpIndex;
+                                    const startPos = offsetToPosition(fileContent, finalOffset);
+                                    const endPos = offsetToPosition(fileContent, finalOffset + vp.length);
+                                    classes.push({
+                                        name: vp,
+                                        range: new vscode.Range(startPos, endPos)
+                                    });
+                                    valSearchIndex = vpIndex + vp.length;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
             while ((match = classRegex.exec(fileContent)) !== null) {
                 processMatch(match, 'class');
             }
@@ -180,6 +249,40 @@ export async function getSelectors(filePath: string, cache: Cache): Promise<{ cl
 
             while ((match = idRegex.exec(fileContent)) !== null) {
                 processMatch(match, 'id');
+            }
+
+            // Template literals
+            while ((match = templateLiteralRegex.exec(fileContent)) !== null) {
+                extractFromContent(match[1], match.index + 1);
+            }
+
+            // clsx / classNames
+            while ((match = clsxRegex.exec(fileContent)) !== null) {
+                const argContent = match[1];
+                const argOffset = match.index + match[0].indexOf(argContent);
+                let stringMatch;
+                stringRegex.lastIndex = 0;
+                while ((stringMatch = stringRegex.exec(argContent)) !== null) {
+                    const value = stringMatch[1] || stringMatch[2];
+                    if (value) {
+                        const valOffset = argOffset + stringMatch.index + 1;
+                        const parts = value.split(/\s+/);
+                        let searchIndex = 0;
+                        for (const part of parts) {
+                            if (part && /^[a-zA-Z0-9_-]+$/.test(part)) {
+                                const pIndex = value.indexOf(part, searchIndex);
+                                const finalOffset = valOffset + pIndex;
+                                const startPos = offsetToPosition(fileContent, finalOffset);
+                                const endPos = offsetToPosition(fileContent, finalOffset + part.length);
+                                classes.push({
+                                    name: part,
+                                    range: new vscode.Range(startPos, endPos)
+                                });
+                                searchIndex = pIndex + part.length;
+                            }
+                        }
+                    }
+                }
             }
 
             // CSS Modules
