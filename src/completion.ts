@@ -75,7 +75,10 @@ async function provideCompletionItems(
         if (fileListCache.has(workspacePath)) {
             filesToScan = fileListCache.get(workspacePath)!;
         } else {
-            const filesInWorkspace = await vscode.workspace.findFiles(`**/*.{${fileExtensions.join(',')}}`, '**/node_modules/**');
+            const filesInWorkspace = await vscode.workspace.findFiles(
+                new vscode.RelativePattern(workspaceFolder, `**/*.{${fileExtensions.join(',')}}`),
+                '**/node_modules/**'
+            );
             filesToScan = filesInWorkspace.map(uri => uri.fsPath);
             fileListCache.set(workspacePath, filesToScan);
         }
