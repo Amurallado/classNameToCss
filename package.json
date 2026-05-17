@@ -127,7 +127,7 @@
         "pretest": "npm run compile-tests",
         "test": "vscode-test",
         "lint": "eslint src",
-        "prepare": "husky install"
+        "prepare": "husky"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",
