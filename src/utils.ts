@@ -13,6 +13,13 @@ const idRegex = /id=(?:"([^"]*)"|'([^']*)')/g;
 const cssClassRegex = /\.([a-zA-Z0-9_-]+)/g;
 const cssIdRegex = /#([a-zA-Z0-9_-]+)/g;
 
+// Tailwind v4 @theme blocks
+const tailwindThemeRegex = /@theme\s*{([^}]*)}/g;
+const tailwindThemeVariableRegex = /--([a-zA-Z0-9_-]+):/g;
+
+// CSS Modules syntax (e.g., styles.myClass or s.myClass)
+const cssModulesRegex = /(?:\s|{|=)(?:styles|s)\.([a-zA-Z0-9_-]+)/g;
+
 /**
  * Checks if the given position is inside a CSS property value, supporting multi-line values.
  * @param document The text document.
@@ -101,6 +108,7 @@ export async function getSelectors(filePath: string, cache: Cache): Promise<{ cl
         if (isCssFile) {
             cssClassRegex.lastIndex = 0;
             cssIdRegex.lastIndex = 0;
+            tailwindThemeRegex.lastIndex = 0;
 
             while ((match = cssClassRegex.exec(fileContent)) !== null) {
                 const startPos = offsetToPosition(fileContent, match.index);
@@ -113,11 +121,25 @@ export async function getSelectors(filePath: string, cache: Cache): Promise<{ cl
                 const endPos = offsetToPosition(fileContent, match.index + match[0].length);
                 ids.push({ name: match[1], range: new vscode.Range(startPos, endPos) });
             }
+
+            // Tailwind v4 @theme
+            while ((match = tailwindThemeRegex.exec(fileContent)) !== null) {
+                const themeContent = match[1];
+                const themeOffset = match.index + match[0].indexOf(themeContent);
+                let varMatch;
+                tailwindThemeVariableRegex.lastIndex = 0;
+                while ((varMatch = tailwindThemeVariableRegex.exec(themeContent)) !== null) {
+                    const startPos = offsetToPosition(fileContent, themeOffset + varMatch.index);
+                    const endPos = offsetToPosition(fileContent, themeOffset + varMatch.index + varMatch[0].length - 1); // remove trailing colon
+                    classes.push({ name: varMatch[1], range: new vscode.Range(startPos, endPos) });
+                }
+            }
         } else {
             // Reset regex lastIndex before use
             classRegex.lastIndex = 0;
             classNameRegex.lastIndex = 0;
             idRegex.lastIndex = 0;
+            cssModulesRegex.lastIndex = 0;
 
             const processMatch = (match: RegExpExecArray, type: 'class' | 'id') => {
                 const value = match[1] || match[2];
@@ -158,6 +180,14 @@ export async function getSelectors(filePath: string, cache: Cache): Promise<{ cl
 
             while ((match = idRegex.exec(fileContent)) !== null) {
                 processMatch(match, 'id');
+            }
+
+            // CSS Modules
+            while ((match = cssModulesRegex.exec(fileContent)) !== null) {
+                const className = match[1];
+                const startPos = offsetToPosition(fileContent, match.index + match[0].indexOf(className));
+                const endPos = offsetToPosition(fileContent, match.index + match[0].indexOf(className) + className.length);
+                classes.push({ name: className, range: new vscode.Range(startPos, endPos) });
             }
         }
 
