@@ -14,7 +14,8 @@
 
 - **Security**: Fixed **Path Traversal** vulnerabilities in file scanning and test initialization.
 - **Security**: Prevented **Object Injection Sink** by refactoring dynamic property access in diagnostics.
-- **Security**: Resolved multiple high-severity vulnerabilities (CVE-2025-59343, RCE in CLI, etc.) via dependency updates and overrides.
+- **Security**: Resolved multiple high-severity vulnerabilities (CVE-2025-59343, RCE in CLI, and security issues in `serialize-javascript` and `diff`) via targeted updates and npm overrides.
+- **Maintenance**: Eliminated `inflight` memory leak warning and outdated `glob` versions by forcing project-wide use of `glob@13`.
 - **Husky**: Updated deprecated `husky install` command to `husky`.
 - Fixed TypeScript configuration and test mock bugs to ensure 100% test coverage.
 

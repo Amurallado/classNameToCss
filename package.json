@@ -151,6 +151,8 @@
         "@vscode/vsce": "^3.9.1"
     },
     "overrides": {
-        "serialize-javascript": "7.0.5"
+        "serialize-javascript": "7.0.5",
+        "glob": "^13.0.6",
+        "diff": ">=8.0.3"
     }
 }
