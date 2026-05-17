@@ -17,3 +17,5 @@ out/
 src/
 tsconfig.json
 webpack.config.js
+.codacy
+.gemini
