@@ -149,5 +149,8 @@
     },
     "dependencies": {
         "@vscode/vsce": "^3.9.1"
+    },
+    "overrides": {
+        "serialize-javascript": "7.0.5"
     }
 }
