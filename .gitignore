@@ -75,3 +75,7 @@ docs/
 # dotenv environment variables file
 .env
 .env.test
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+.worktrees/
