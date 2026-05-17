@@ -130,25 +130,24 @@
         "prepare": "husky install"
     },
     "devDependencies": {
-        "@eslint/js": "^9.32.0",
+        "@eslint/js": "^10.0.1",
         "@types/mocha": "^10.0.10",
-        "@types/node": "20.x",
-        "@types/vscode": "^1.102.0",
-        "@typescript-eslint/eslint-plugin": "^8.31.1",
-        "@typescript-eslint/parser": "^8.31.1",
-        "@vscode/test-cli": "^0.0.11",
+        "@types/node": "~25.8.0",
+        "@types/vscode": "^1.120.0",
+        "@typescript-eslint/eslint-plugin": "^8.59.3",
+        "@typescript-eslint/parser": "^8.59.3",
+        "@vscode/test-cli": "^0.0.12",
         "@vscode/test-electron": "^2.5.2",
-        "esbuild": "^0.25.10",
-        "eslint": "^9.25.1",
-        "glob": "^10.3.10",
-        "globals": "^16.3.0",
-        "husky": "^9.0.11",
-        "mocha": "^10.3.0",
-        "typescript": "^5.8.3",
-        "typescript-eslint": "^8.38.0"
+        "esbuild": "^0.28.0",
+        "eslint": "^10.4.0",
+        "glob": "^13.0.6",
+        "globals": "^17.6.0",
+        "husky": "^9.1.7",
+        "mocha": "^11.7.5",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.59.3"
     },
     "dependencies": {
-        "@google/gemini-cli": "^0.2.2",
-        "@vscode/vsce": "^3.6.0"
+        "@vscode/vsce": "^3.9.1"
     }
 }

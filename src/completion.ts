@@ -87,7 +87,9 @@ async function provideCompletionItems(
             const filesInDir = await promisify(fs.readdir)(currentDir);
             const filteredFiles = filesInDir.filter(file => {
                 const ext = file.split('.').pop();
-                return ext !== undefined && fileExtensions.includes(ext);
+                // Basic path traversal prevention
+                const isSafe = !file.includes('..') && !file.includes('/') && !file.includes('\\');
+                return isSafe && ext !== undefined && fileExtensions.includes(ext);
             });
             filesToScan = filteredFiles.map(file => path.join(currentDir, file));
         } catch (e) {

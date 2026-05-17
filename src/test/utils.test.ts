@@ -17,7 +17,23 @@ suite('Utils Test Suite', () => {
                     rangeIncludingLineBreak: new vscode.Range(new vscode.Position(lineNum, 0), new vscode.Position(lineNum, lines[lineNum].length)),
                 };
             },
-            getText: () => content,
+            getText: (range?: vscode.Range) => {
+                if (!range) {
+                    return content;
+                }
+                const lines = content.split('\n');
+                let result = '';
+                for (let i = range.start.line; i <= range.end.line; i++) {
+                    const line = lines[i];
+                    const startChar = i === range.start.line ? range.start.character : 0;
+                    const endChar = i === range.end.line ? range.end.character : line.length;
+                    result += line.substring(startChar, endChar);
+                    if (i < range.end.line) {
+                        result += '\n';
+                    }
+                }
+                return result;
+            },
         } as vscode.TextDocument;
     };
 

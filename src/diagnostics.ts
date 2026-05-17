@@ -63,7 +63,9 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
                 const filesInDir = await promisify(fs.readdir)(currentDir);
                 const filteredFiles = filesInDir.filter(file => {
                     const ext = file.split('.').pop();
-                    return ext !== undefined && fileExtensions.includes(ext);
+                    // Basic path traversal prevention
+                    const isSafe = !file.includes('..') && !file.includes('/') && !file.includes('\\');
+                    return isSafe && ext !== undefined && fileExtensions.includes(ext);
                 });
                 filesToScan = filteredFiles.map(file => path.join(currentDir, file));
             } catch (e) {
@@ -82,9 +84,7 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
     const text = document.getText();
     const lines = text.split('\n');
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
+    lines.forEach((line, i) => {
         const classMatches = Array.from(line.matchAll(/\.([a-zA-Z0-9_-]+)/g));
         const idMatches = Array.from(line.matchAll(/#([a-zA-Z0-9_-]+)/g));
 
@@ -133,7 +133,7 @@ async function updateDiagnostics(document: vscode.TextDocument, diagnosticCollec
                 }
             }
         }
-    }
+    });
 
     diagnosticCollection.set(document.uri, diagnostics);
 }
