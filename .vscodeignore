@@ -1,6 +1,4 @@
-.vscode/**
 .vscode-test/**
-src/**
 .github/**
 esbuild.js
 .vscode-test.mjs
@@ -9,10 +7,13 @@ CHANGELOG.md
 classtocss1.png
 classtocss2.png
 eslint.config.mjs
-**/tsconfig.json
 **/*.map
 **/*.ts
-out/test/**
 .gitignore
 **/tslint.json
+.vscode
 node_modules
+out/
+src/
+tsconfig.json
+webpack.config.js
