@@ -6,6 +6,7 @@ import { Cache } from "./cache";
 import * as diagnostics from "./diagnostics";
 import { registerDefinitionProvider } from "./navigation";
 import { CSSRenameProvider } from "./refactoring";
+import { CSSHoverProvider } from "./hover";
 
 export function activate(context: vscode.ExtensionContext): void {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
@@ -17,6 +18,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerDefinitionProvider(context, cache);
 
   const renameProvider = new CSSRenameProvider(cache);
+  const hoverProvider = new CSSHoverProvider(cache);
   const selector = [
     { language: 'html', scheme: 'file' },
     { language: 'php', scheme: 'file' },
@@ -28,6 +30,7 @@ export function activate(context: vscode.ExtensionContext): void {
     { language: 'less', scheme: 'file' }
   ];
   context.subscriptions.push(vscode.languages.registerRenameProvider(selector, renameProvider));
+  context.subscriptions.push(vscode.languages.registerHoverProvider(selector, hoverProvider));
 
   const watchers = new Map<string, vscode.FileSystemWatcher>();
 
