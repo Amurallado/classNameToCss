@@ -5,6 +5,7 @@ import completion, { fileListCache } from "./completion";
 import { Cache } from "./cache";
 import * as diagnostics from "./diagnostics";
 import { registerDefinitionProvider } from "./navigation";
+import { CSSRenameProvider } from "./refactoring";
 
 export function activate(context: vscode.ExtensionContext): void {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
@@ -14,6 +15,19 @@ export function activate(context: vscode.ExtensionContext): void {
   completion(context, cache);
   diagnostics.activate(context, cache);
   registerDefinitionProvider(context, cache);
+
+  const renameProvider = new CSSRenameProvider(cache);
+  const selector = [
+    { language: 'html', scheme: 'file' },
+    { language: 'php', scheme: 'file' },
+    { language: 'vue', scheme: 'file' },
+    { language: 'javascriptreact', scheme: 'file' },
+    { language: 'typescriptreact', scheme: 'file' },
+    { language: 'css', scheme: 'file' },
+    { language: 'scss', scheme: 'file' },
+    { language: 'less', scheme: 'file' }
+  ];
+  context.subscriptions.push(vscode.languages.registerRenameProvider(selector, renameProvider));
 
   const config = vscode.workspace.getConfiguration('cssselectorsupport');
   const includeLanguages = config.get<string[]>('include', ['htm', 'html', 'jsx', 'tsx', 'vue', 'php']);
