@@ -27,4 +27,8 @@ export class Cache {
   public clear(): void {
     this.cache.clear();
   }
+
+  public getAll(): Map<string, { classes: Selector[], ids: Selector[] }> {
+    return new Map(this.cache);
+  }
 }
