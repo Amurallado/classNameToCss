@@ -111,8 +111,10 @@ export class CSSRenameProvider implements vscode.RenameProvider {
         const isCss = ['.css', '.scss', '.sass', '.less', '.styl'].includes(ext) || 
                       ['css', 'scss', 'sass', 'less', 'stylus'].includes(fileDocument.languageId);
 
+        const escapedOldName = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
         if (isCss) {
-            const regex = type === 'class' ? new RegExp(`\\.(${oldName})(?![a-zA-Z0-9_-])`, 'g') : new RegExp(`#(${oldName})(?![a-zA-Z0-9_-])`, 'g');
+            const regex = type === 'class' ? new RegExp(`\\.(${escapedOldName})(?![a-zA-Z0-9_-])`, 'g') : new RegExp(`#(${escapedOldName})(?![a-zA-Z0-9_-])`, 'g');
             let match;
             while ((match = regex.exec(content)) !== null) {
                 const startPos = fileDocument.positionAt(match.index + 1);
