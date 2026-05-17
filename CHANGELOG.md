@@ -16,6 +16,7 @@
 - **Security**: Prevented **Object Injection Sink** by refactoring dynamic property access in diagnostics.
 - **Security**: Resolved multiple high-severity vulnerabilities (CVE-2025-59343, RCE in CLI, and security issues in `serialize-javascript` and `diff`) via targeted updates and npm overrides.
 - **Maintenance**: Eliminated `inflight` memory leak warning and outdated `glob` versions by forcing project-wide use of `glob@13`.
+- **Maintenance**: Added explicit `secretlint` dependencies to fix `vsce` packaging issues in non-hoisted environments (pnpm support).
 - **Husky**: Updated deprecated `husky install` command to `husky`.
 - **Infrastructure**: Fully migrated to **npm** and cleaned up redundant dependencies (removed `@google/gemini-cli`, optimized devDependencies).
 - Fixed TypeScript configuration and test mock bugs to ensure 100% test coverage.
