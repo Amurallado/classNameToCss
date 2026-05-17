@@ -58,7 +58,6 @@ export class CSSRenameProvider implements vscode.RenameProvider {
 
         const editRange = (range as any).range || range;
         const oldName = document.getText(editRange);
-        const edit = new vscode.WorkspaceEdit();
 
         const ext = path.extname(document.fileName).toLowerCase();
         const isCssFile = ['.css', '.scss', '.sass', '.less', '.styl'].includes(ext) || 
@@ -83,6 +82,35 @@ export class CSSRenameProvider implements vscode.RenameProvider {
                 }
             }
         }
+
+        // Collision Detection
+        const allSelectors = this.cache.getAll();
+        let exists = false;
+        for (const [filePath, selectors] of allSelectors) {
+            const fileExt = path.extname(filePath).toLowerCase();
+            const isTargetCssFile = ['.css', '.scss', '.sass', '.less', '.styl'].includes(fileExt);
+            
+            if (isTargetCssFile) {
+                const list = type === 'class' ? selectors.classes : selectors.ids;
+                if (list.some(s => s.name === newName)) {
+                    exists = true;
+                    break;
+                }
+            }
+        }
+
+        if (exists) {
+            const selection = await vscode.window.showWarningMessage(
+                `The ${type} name "${newName}" already exists in your CSS files. Renaming to it might merge styles. Do you want to proceed?`,
+                'Rename Anyway',
+                'Cancel'
+            );
+            if (selection !== 'Rename Anyway') {
+                return null as any;
+            }
+        }
+
+        const edit = new vscode.WorkspaceEdit();
 
         // Add edit for the current document (important for virtual docs in tests)
         if (document.uri.scheme === 'untitled' || document.uri.scheme === 'vsls') {
